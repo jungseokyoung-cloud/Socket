@@ -15,24 +15,25 @@ enum HandlerResultMode {
 }
 
 protocol MessageDelegate: AnyObject {
-	func echoModeHandler(message: String?) -> HandlerResultMode
-	func commandModeHandler(message: String?) -> HandlerResultMode
+	func echoModeHandler(message: String) -> HandlerResultMode
+	func commandModeHandler(message: String) -> HandlerResultMode
 }
 
 // MARK: Echo Mode Message Handler
 class MessageHandler: MessageDelegate {
-	func echoModeHandler(message: String?) -> HandlerResultMode {
-		let data = "echo: \(message ?? "")".data(using: .utf8)
-		
-		return .messageReturn(data)
+	func echoModeHandler(message: String) -> HandlerResultMode {
+		if message.removeCRLF == "checkout" {
+			return .modeChanged(.command)
+		} else {
+			let data = "echo: \(message)".data(using: .utf8)
+			return .messageReturn(data)
+		}
 	}
 }
 
 // MARK: Command Mode Message Handler
 extension MessageHandler {
-	func commandModeHandler(message: String?) -> HandlerResultMode {
-		guard let message = message else { return .errorReturn(nil) }
-		
+	func commandModeHandler(message: String) -> HandlerResultMode {
 		/// split command and Argument
 		let command = message.removeCRLF.split(separator: " ").map { String($0) }
 

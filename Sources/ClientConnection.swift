@@ -96,8 +96,11 @@ private extension ClientConnection {
 		connection.receive(minimumIncompleteLength: 1, maximumLength: MTU) { [weak self] (data, _, isComplete, error) in
 			guard let self = self else { return }
 			
-			if let data = data, !data.isEmpty {
-				let message = String(data: data, encoding: .utf8)
+			if
+				let data = data,
+				!data.isEmpty,
+				let message = String(data: data, encoding: .utf8) {
+				
 				print("connection id:\(self.id) did receive")
 				var result: HandlerResultMode
 				

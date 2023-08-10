@@ -18,13 +18,13 @@ class ClientConnection {
 	var mode: ConnectionMode
 	
 	var didStopCallback: ((Error?) -> Void)? = nil
-	var handler: CommandDelegate
+	var handler: MessageDelegate
 	
 	init(nwConnection: NWConnection) {
 		self.connection = nwConnection
 		self.mode = .echo
 		self.id = ClientConnection.nextID
-		self.handler = CommandHandler()
+		self.handler = MessageHandler()
 		
 		ClientConnection.nextID += 1
 	}
@@ -88,7 +88,7 @@ private extension ClientConnection {
 			if let data = data, !data.isEmpty {
 				let message = String(data: data, encoding: .utf8)
 				print("connection id:\(self.id) did receive")
-				var result: CommandMode
+				var result: HandlerResultMode
 				
 				switch self.mode {
 				case .echo:
@@ -106,7 +106,7 @@ private extension ClientConnection {
 		}
 	}
 	
-	func resultDidComeFromHandler(_ command: CommandMode) {
+	func resultDidComeFromHandler(_ command: HandlerResultMode) {
 		switch command {
 		case .messageReturn(let data):
 			self.send(data: data)

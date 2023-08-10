@@ -7,18 +7,18 @@
 
 import Foundation
 
-enum CommandMode {
+enum HandlerResultMode {
 	case messageReturn(_ data: Data?)
 	case modeChanged(_ mode: ConnectionMode)
 }
 
-protocol CommandDelegate: AnyObject {
-	func echoModeHandler(message: String?) -> CommandMode
+protocol MessageDelegate: AnyObject {
+	func echoModeHandler(message: String?) -> HandlerResultMode
 }
 
 // MARK: Echo Mode Message Handler
-class CommandHandler: CommandDelegate {
-	func echoModeHandler(message: String?) -> CommandMode {
+class MessageHandler: MessageDelegate {
+	func echoModeHandler(message: String?) -> HandlerResultMode {
 		let data = "echo: \(message ?? "")".data(using: .utf8)
 		
 		return .messageReturn(data)

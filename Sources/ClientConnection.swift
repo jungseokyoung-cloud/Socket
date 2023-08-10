@@ -72,6 +72,8 @@ class ClientConnection {
 			message = ServerMessage.enterEchoMode.description
 		case .personalChatting(let id):
 			message = ServerMessage.enterPersonalChatting(id).description
+		case .groupChatting(let id):
+			message = ServerMessage.enterGroupChatting(id).description
 		}
 		
 		self.send(data: message.data(using: .utf8))
@@ -108,11 +110,13 @@ private extension ClientConnection {
 				
 				switch self.mode {
 				case .command:
-					result = self.handler.commandModeHandler(message: message)
+					result = self.handler.commandModeHandler(message)
 				case .echo:
-					result = self.handler.echoModeHandler(message: message)
+					result = self.handler.echoModeHandler(message)
 				case .personalChatting(let id):
-					result = self.handler.personalChattingModeHandler(message: message, id)
+					result = self.handler.personalChattingModeHandler(message, id: id)
+				case .groupChatting(let id):
+					result = self.handler.groupChattingModeHandler(message, id: id)
 				}
 				resultDidComeFromHandler(result)
 			}

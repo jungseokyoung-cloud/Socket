@@ -12,7 +12,6 @@ import Network
 class Server {
 	let port: NWEndpoint.Port
 	let listener: NWListener
-	static var connectionsByID: [Int: ClientConnection] = [:]
 	
 	init(port: UInt16) {
 		self.port = NWEndpoint.Port(rawValue: port)!
@@ -39,9 +38,10 @@ class Server {
 	
 	private func didAccept(nwConnection: NWConnection) {
 		let connection = ClientConnection(nwConnection: nwConnection)
-		Server.connectionsByID[connection.id] = connection
+		ConnectionStorage.addConnectionPersonal(connection)
 		connection.didStopCallback = { _ in
-			self.connectionDidStop(connection)
+			ConnectionStorage.removeConnectionPersonal(connection)
+			print("server did close connection \(connection.id)")
 		}
 		connection.start()
 		
@@ -52,20 +52,12 @@ class Server {
 		connection.send(data: optionMessage.data(using: .utf8))
 		print("Server did open connection \(connection.id)")
 	}
-	
-	private func connectionDidStop(_ connection: ClientConnection) {
-		Server.connectionsByID.removeValue(forKey: connection.id)
-		print("server did close connection \(connection.id)")
-	}
-	
+		
 	private func stop() {
 		self.listener.stateUpdateHandler = nil
 		self.listener.newConnectionHandler = nil
 		self.listener.cancel()
-		for connection in Server.connectionsByID.values {
-			connection.didStopCallback = nil
-			connection.stop()
-		}
-		Server.connectionsByID.removeAll()
+		
+		ConnectionStorage.removeAllConnection()
 	}
 }

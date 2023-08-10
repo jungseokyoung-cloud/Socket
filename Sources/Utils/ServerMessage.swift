@@ -13,6 +13,7 @@ enum ServerMessage {
 	case enterEchoMode
 	case option
 	case enterPersonalChatting(_ id: Int)
+	case enterGroupChatting(_ id: Int)
 }
 
 extension ServerMessage {
@@ -28,8 +29,10 @@ extension ServerMessage {
 			return "-------- ECHO MODE --------".appendCRLF
 			
 		case .enterPersonalChatting(let id):
-			return "-------- CHAT MODE --------\nYou Can Chat With With id:\(id)".appendCRLF
-			
+			return "-------- CHAT MODE --------\nYou Can Chat With id:\(id)".appendCRLF
+		
+		case .enterGroupChatting(let id):
+			return "-------- GROUP MODE --------\nYour Group is:\(id)".appendCRLF
 		case .option:
 			return """
 	--------------------------------------

@@ -11,4 +11,5 @@ enum ConnectionMode {
 	case command
 	case echo
 	case personalChatting(_ id: Int)
+	case groupChatting(_ id: Int)
 }

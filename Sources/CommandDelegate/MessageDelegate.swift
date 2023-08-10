@@ -18,12 +18,16 @@ enum HandlerResultMode {
 @available(macOS 10.14, *)
 protocol MessageDelegate: AnyObject {
 	var clientID: Int { get }
-	
-	func echoModeHandler(message: String) -> HandlerResultMode
-	func commandModeHandler(message: String) -> HandlerResultMode
+	func echoModeHandler(_ message: String) -> HandlerResultMode
+	func commandModeHandler(_ message: String) -> HandlerResultMode
 	func personalChattingModeHandler(
-		message: String,
-		_ id: Int
+		_ message: String,
+		id: Int
+	) -> HandlerResultMode
+	
+	func groupChattingModeHandler(
+		_ message: String,
+		id: Int
 	) -> HandlerResultMode
 }
 
@@ -36,7 +40,7 @@ class MessageHandler: MessageDelegate {
 		self.clientID = clientID
 	}
 	
-	func echoModeHandler(message: String) -> HandlerResultMode {
+	func echoModeHandler(_ message: String) -> HandlerResultMode {
 		if message.removeCRLF == "checkout" {
 			return .modeChanged(.command)
 		} else {
@@ -49,7 +53,7 @@ class MessageHandler: MessageDelegate {
 @available(macOS 10.14, *)
 // MARK: Command Mode Message Handler
 extension MessageHandler {
-	func commandModeHandler(message: String) -> HandlerResultMode {
+	func commandModeHandler(_ message: String) -> HandlerResultMode {
 		/// split command and Argument
 		let command = message.removeCRLF.split(separator: " ").map { String($0) }
 		
@@ -73,13 +77,14 @@ extension MessageHandler {
 	/// Single Command
 	func processSingleCommand(_ command: String) -> HandlerResultMode {
 		if command == "clientlist" {
-			let ids = Server.connectionsByID.map{ "\($0.key)" }
+			let ids = ConnectionStorage.personal.connectionsByID.map{ "\($0.key)" }
 			let idMessage = ids.joined(separator: ", ").appendCRLF
 			return .messageReturn(idMessage.data(using: .utf8))
 			/// grouplist Command: return Group list message
 		} else if command == "grouplist" {
-			let message = "group list".appendCRLF
-			return .messageReturn(message.data(using: .utf8))
+			let groupIDs = ConnectionStorage.getGroupList()
+			let groupdIDMessage = groupIDs.joined(separator: ", ").appendCRLF
+			return .messageReturn(groupdIDMessage.data(using: .utf8))
 			/// echo Command: change to echo Mode
 		} else if command == "echo" {
 			return .modeChanged(.echo)
@@ -104,7 +109,7 @@ extension MessageHandler {
 		
 		guard
 			clientID != id,
-			Server.connectionsByID[id] != nil
+			ConnectionStorage.getPersonalByID(id) != nil
 		else {
 			let errorMessage = CommandError.invalidClientID(id).description
 			return .errorReturn(errorMessage.data(using: .utf8))
@@ -113,7 +118,21 @@ extension MessageHandler {
 	}
 	
 	func enterGroupChatting(_ argument: String) -> HandlerResultMode {
-		return .messageReturn("group".appendCRLF.data(using: .utf8))
+		guard let id = Int(argument) else {
+			let errorMessage = CommandError.unkownCommand.description
+			return .errorReturn(errorMessage.data(using: .utf8))
+		}
+		if !ConnectionStorage.isvalidGroupID(id) {
+			let errorMessage = CommandError.invalidGroupID(id).description
+			return .errorReturn(errorMessage.data(using: .utf8))
+		}
+		
+		if let connection = ConnectionStorage.getPersonalByID(clientID) {
+			ConnectionStorage.addConnectionGroupAt(id, connection: connection)
+			return .modeChanged(.groupChatting(id))
+		} else {
+			return .clientDisconnet
+		}
 	}
 }
 
@@ -121,10 +140,10 @@ extension MessageHandler {
 // MARK: Personal Chatting Message Handler
 extension MessageHandler {
 	func personalChattingModeHandler(
-		message: String,
-		_ id: Int
+		_ message: String,
+		id: Int
 	) -> HandlerResultMode {
-		guard let connection = Server.connectionsByID[id] else {
+		guard let connection = ConnectionStorage.getPersonalByID(id) else {
 			let errorMessage = CommandError.invalidClientID(id).description
 			return .modeDidFinishWithError(errorMessage.data(using: .utf8))
 		}
@@ -134,8 +153,39 @@ extension MessageHandler {
 		} else {
 			let fromMessage = "from \(self.clientID): \(message)"
 			let toMessage = "to \(id): \(message)"
-
+			
 			connection.send(data: fromMessage.data(using: .utf8))
+			return .messageReturn(toMessage.data(using: .utf8))
+		}
+	}
+}
+
+@available(macOS 10.14, *)
+// MARK: Group Chatting Message Handler
+extension MessageHandler {
+	func groupChattingModeHandler(
+		_ message: String,
+		id: Int
+	) -> HandlerResultMode {
+		guard ConnectionStorage.isvalidGroupID(id) else {
+			let errorMessage = CommandError.invalidGroupID(id).description
+			return .modeDidFinishWithError(errorMessage.data(using: .utf8))
+		}
+		
+		if message.removeCRLF == "checkout" {
+			ConnectionStorage.removeConnectionGroupAt(id, clientID: clientID)
+			return .modeChanged(.command)
+		} else {
+			let connections = ConnectionStorage.getConnectionListGroupAt(id)
+			
+			let fromMessage = "from \(self.clientID): \(message)"
+			let toMessage = "to \(id): \(message)"
+
+			connections.forEach { (id, connection) in
+				if id != clientID {
+					connection.send(data: fromMessage.data(using: .utf8))
+				}
+			}
 			return .messageReturn(toMessage.data(using: .utf8))
 		}
 	}

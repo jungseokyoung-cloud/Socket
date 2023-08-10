@@ -9,6 +9,7 @@ import Foundation
 
 enum CommandError: Error {
 	case unkownCommand
+	case invalidClientID(_ id: Int)
 }
 
 extension CommandError {
@@ -16,6 +17,9 @@ extension CommandError {
 		switch self {
 		case .unkownCommand:
 			return "Unkown commend. See 'option'".appendCRLF
+			
+		case .invalidClientID(let id):
+			return "Client id: \(id) is invalid. See 'clientlist'".appendCRLF
 		}
 	}
 }

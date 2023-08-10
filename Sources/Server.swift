@@ -48,7 +48,7 @@ class Server {
 		let connectionMessage = ServerMessage.welcomeMessage(connection.id).description
 		connection.send(data: connectionMessage.data(using: .utf8))
 		
-		let optionMessage = ServerMessage.optionMessage.description
+		let optionMessage = ServerMessage.option.description
 		connection.send(data: optionMessage.data(using: .utf8))
 		print("Server did open connection \(connection.id)")
 	}

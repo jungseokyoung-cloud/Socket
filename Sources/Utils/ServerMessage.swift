@@ -11,7 +11,8 @@ enum ServerMessage {
 	case welcomeMessage(_ id: Int)
 	case enterCommandMode
 	case enterEchoMode
-	case optionMessage
+	case option
+	case enterPersonalChatting(_ id: Int)
 }
 
 extension ServerMessage {
@@ -19,11 +20,17 @@ extension ServerMessage {
 		switch self {
 		case .welcomeMessage(let id):
 			return "You are connection: \(id)".appendCRLF
+			
 		case .enterCommandMode:
 			return "-------- COMMAND MODE --------".appendCRLF
+			
 		case .enterEchoMode:
 			return "-------- ECHO MODE --------".appendCRLF
-		case .optionMessage:
+			
+		case .enterPersonalChatting(let id):
+			return "-------- CHAT MODE --------\nYou Can Chat With With id:\(id)".appendCRLF
+			
+		case .option:
 			return """
 	--------------------------------------
 	< OPTION >

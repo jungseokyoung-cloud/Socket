@@ -10,4 +10,5 @@ import Foundation
 enum ConnectionMode {
 	case command
 	case echo
+	case personalChatting(_ id: Int)
 }

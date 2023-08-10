@@ -24,7 +24,7 @@ class ClientConnection {
 		self.connection = nwConnection
 		self.mode = .command
 		self.id = ClientConnection.nextID
-		self.handler = MessageHandler()
+		self.handler = MessageHandler(clientID: id)
 		
 		ClientConnection.nextID += 1
 	}
@@ -70,6 +70,8 @@ class ClientConnection {
 			message = ServerMessage.enterCommandMode.description
 		case .echo:
 			message = ServerMessage.enterEchoMode.description
+		case .personalChatting(let id):
+			message = ServerMessage.enterPersonalChatting(id).description
 		}
 		
 		self.send(data: message.data(using: .utf8))
@@ -109,6 +111,8 @@ private extension ClientConnection {
 					result = self.handler.commandModeHandler(message: message)
 				case .echo:
 					result = self.handler.echoModeHandler(message: message)
+				case .personalChatting(let id):
+					result = self.handler.personalChattingModeHandler(message: message, id)
 				}
 				resultDidComeFromHandler(result)
 			}
@@ -132,6 +136,9 @@ private extension ClientConnection {
 			}
 		case .modeChanged(let mode):
 			self.changeMode(mode)
+		case .modeDidFinishWithError(let err):
+			self.send(data: err)
+			self.changeMode(.command)
 		case .clientDisconnet:
 			self.stop()
 		}

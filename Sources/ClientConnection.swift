@@ -22,7 +22,7 @@ class ClientConnection {
 	
 	init(nwConnection: NWConnection) {
 		self.connection = nwConnection
-		self.mode = .echo
+		self.mode = .command
 		self.id = ClientConnection.nextID
 		self.handler = MessageHandler()
 		
@@ -62,7 +62,18 @@ class ClientConnection {
 		)
 	}
 	
-	private func changeMode(_ mode: ConnectionMode) { }
+	private func changeMode(_ mode: ConnectionMode) {
+		var message: String
+		self.mode = mode
+		switch self.mode {
+		case .command:
+			message = ServerMessage.enterCommandMode.description
+		case .echo:
+			message = ServerMessage.enterEchoMode.description
+		}
+		
+		self.send(data: message.data(using: .utf8))
+	}
 }
 
 @available(macOS 10.14, *)
@@ -91,6 +102,8 @@ private extension ClientConnection {
 				var result: HandlerResultMode
 				
 				switch self.mode {
+				case .command:
+					result = self.handler.commandModeHandler(message: message)
 				case .echo:
 					result = self.handler.echoModeHandler(message: message)
 				}
@@ -110,8 +123,14 @@ private extension ClientConnection {
 		switch command {
 		case .messageReturn(let data):
 			self.send(data: data)
+		case .errorReturn(let err):
+			if let err = err {
+				self.send(data: err)
+			}
 		case .modeChanged(let mode):
 			self.changeMode(mode)
+		case .clientDisconnet:
+			self.stop()
 		}
 	}
 	

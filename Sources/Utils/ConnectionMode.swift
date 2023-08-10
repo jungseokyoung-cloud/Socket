@@ -8,5 +8,6 @@
 import Foundation
 
 enum ConnectionMode {
+	case command
 	case echo
 }

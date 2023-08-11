@@ -11,8 +11,8 @@ import Network
 @available(macOS 10.14, *)
 class ClientConnection {
 	let MTU = 65536
-	private static var nextID: Int = 1
-	
+	private let lock = NSLock()
+
 	let connection: NWConnection
 	let id: Int
 	var mode: ConnectionMode
@@ -20,13 +20,11 @@ class ClientConnection {
 	var didStopCallback: ((Error?) -> Void)? = nil
 	var handler: MessageDelegate
 	
-	init(nwConnection: NWConnection) {
+	init(nwConnection: NWConnection, id: Int) {
 		self.connection = nwConnection
 		self.mode = .command
-		self.id = ClientConnection.nextID
+		self.id = id
 		self.handler = MessageHandler(clientID: id)
-		
-		ClientConnection.nextID += 1
 	}
 	
 	func start() {
@@ -50,6 +48,8 @@ class ClientConnection {
 	}
 	
 	func send(data: Data?) {
+		lock.lock(); defer {lock.unlock()}
+		
 		self.connection.send(
 			content: data,
 			completion: .contentProcessed({ error in

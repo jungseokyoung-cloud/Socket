@@ -8,12 +8,23 @@
 import Foundation
 
 @available(macOS 10.14, *)
-struct ConnectionStorage {
-	static var personal = Connections()
-	static var group = [Connections](repeating: Connections(), count: maxGroupCount)
-	static var maxGroupCount = 50
+class ConnectionStorage {
+	static let shared = ConnectionStorage()
 	
-	static func removeAllConnection() {
+	private let lock = NSLock()
+	
+	let maxGroupCount = 50
+	var personal: Connections
+	var group: [Connections]
+	
+	private init() {
+		self.personal = Connections()
+		self.group = [Connections](repeating: Connections(), count: maxGroupCount)
+	}
+	
+	func removeAllConnection() {
+		lock.lock(); defer {lock.unlock()}
+		
 		personal.connectionsByID.values.forEach { connection in
 			connection.didStopCallback = nil
 			connection.stop()
@@ -29,15 +40,17 @@ struct ConnectionStorage {
 @available(macOS 10.14, *)
 // MARK: Personal Storage methods
 extension ConnectionStorage {
-	static func addConnectionPersonal(_ connection: ClientConnection) {
+	func addConnectionPersonal(_ connection: ClientConnection) {
+		lock.lock(); defer {lock.unlock()}
 		personal.connectionsByID[connection.id] = connection
 	}
 	
-	static func removeConnectionPersonal(_ connection: ClientConnection) {
+	func removeConnectionPersonal(_ connection: ClientConnection) {
+		lock.lock(); defer {lock.unlock()}
 		personal.connectionsByID.removeValue(forKey: connection.id)
 	}
 	
-	static func getPersonalByID(_ id: Int) -> ClientConnection? {
+	func getPersonalByID(_ id: Int) -> ClientConnection? {
 		return personal.connectionsByID[id]
 	}
 }
@@ -45,11 +58,12 @@ extension ConnectionStorage {
 @available(macOS 10.14, *)
 // MARK: Group Storage methods
 extension ConnectionStorage {
-	static func addConnectionGroupAt(_ id: Int, connection: ClientConnection) {
+	func addConnectionGroupAt(_ id: Int, connection: ClientConnection) {
+		lock.lock(); defer {lock.unlock()}
 		group[id].connectionsByID[connection.id] = connection
 	}
 	
-	static func getConnectionListGroupAt(_ id: Int) -> [Int: ClientConnection] {
+	func getConnectionListGroupAt(_ id: Int) -> [Int: ClientConnection] {
 		group[id].connectionsByID.forEach { (id, connection) in
 			if personal.connectionsByID[id] == nil {
 				removeConnectionPersonal(connection)
@@ -59,11 +73,12 @@ extension ConnectionStorage {
 		return group[id].connectionsByID
 	}
 	
-	static func removeConnectionGroupAt(_ id: Int, clientID: Int) {
+	func removeConnectionGroupAt(_ id: Int, clientID: Int) {
+		lock.lock(); defer {lock.unlock()}
 		group[id].connectionsByID.removeValue(forKey: clientID)
 	}
 	
-	static func getGroupList() -> [String] {
+	func getGroupList() -> [String] {
 		var groupList = [String]()
 		
 		let groupConnections = group.map(\.connectionsByID)
@@ -76,7 +91,7 @@ extension ConnectionStorage {
 		return groupList
 	}
 	
-	static func isvalidGroupID(_ id: Int) -> Bool {
+	func isvalidGroupID(_ id: Int) -> Bool {
 		return id >= 0 && id < maxGroupCount
 	}
 }

@@ -77,12 +77,12 @@ extension MessageHandler {
 	/// Single Command
 	func processSingleCommand(_ command: String) -> HandlerResultMode {
 		if command == "clientlist" {
-			let ids = ConnectionStorage.personal.connectionsByID.map{ "\($0.key)" }
+			let ids = ConnectionStorage.shared.personal.connectionsByID.map{ "\($0.key)" }
 			let idMessage = ids.joined(separator: ", ").appendCRLF
 			return .messageReturn(idMessage.data(using: .utf8))
 			/// grouplist Command: return Group list message
 		} else if command == "grouplist" {
-			let groupIDs = ConnectionStorage.getGroupList()
+			let groupIDs = ConnectionStorage.shared.getGroupList()
 			let groupdIDMessage = groupIDs.joined(separator: ", ").appendCRLF
 			return .messageReturn(groupdIDMessage.data(using: .utf8))
 			/// echo Command: change to echo Mode
@@ -109,7 +109,7 @@ extension MessageHandler {
 		
 		guard
 			clientID != id,
-			ConnectionStorage.getPersonalByID(id) != nil
+			ConnectionStorage.shared.getPersonalByID(id) != nil
 		else {
 			let errorMessage = CommandError.invalidClientID(id).description
 			return .errorReturn(errorMessage.data(using: .utf8))
@@ -122,13 +122,13 @@ extension MessageHandler {
 			let errorMessage = CommandError.unkownCommand.description
 			return .errorReturn(errorMessage.data(using: .utf8))
 		}
-		if !ConnectionStorage.isvalidGroupID(id) {
+		if !ConnectionStorage.shared.isvalidGroupID(id) {
 			let errorMessage = CommandError.invalidGroupID(id).description
 			return .errorReturn(errorMessage.data(using: .utf8))
 		}
 		
-		if let connection = ConnectionStorage.getPersonalByID(clientID) {
-			ConnectionStorage.addConnectionGroupAt(id, connection: connection)
+		if let connection = ConnectionStorage.shared.getPersonalByID(clientID) {
+			ConnectionStorage.shared.addConnectionGroupAt(id, connection: connection)
 			return .modeChanged(.groupChatting(id))
 		} else {
 			return .clientDisconnet
@@ -143,7 +143,7 @@ extension MessageHandler {
 		_ message: String,
 		id: Int
 	) -> HandlerResultMode {
-		guard let connection = ConnectionStorage.getPersonalByID(id) else {
+		guard let connection = ConnectionStorage.shared.getPersonalByID(id) else {
 			let errorMessage = CommandError.invalidClientID(id).description
 			return .modeDidFinishWithError(errorMessage.data(using: .utf8))
 		}
@@ -167,16 +167,16 @@ extension MessageHandler {
 		_ message: String,
 		id: Int
 	) -> HandlerResultMode {
-		guard ConnectionStorage.isvalidGroupID(id) else {
+		guard ConnectionStorage.shared.isvalidGroupID(id) else {
 			let errorMessage = CommandError.invalidGroupID(id).description
 			return .modeDidFinishWithError(errorMessage.data(using: .utf8))
 		}
 		
 		if message.removeCRLF == "checkout" {
-			ConnectionStorage.removeConnectionGroupAt(id, clientID: clientID)
+			ConnectionStorage.shared.removeConnectionGroupAt(id, clientID: clientID)
 			return .modeChanged(.command)
 		} else {
-			let connections = ConnectionStorage.getConnectionListGroupAt(id)
+			let connections = ConnectionStorage.shared.getConnectionListGroupAt(id)
 			
 			let fromMessage = "from \(self.clientID): \(message)"
 			let toMessage = "to \(id): \(message)"

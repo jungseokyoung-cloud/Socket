@@ -10,8 +10,11 @@ import Network
 
 @available(macOS 10.14, *)
 class Server {
+	private let lock = NSLock()
+	
 	let port: NWEndpoint.Port
 	let listener: NWListener
+	var nextClientID: Int = 1
 	
 	init(port: UInt16) {
 		self.port = NWEndpoint.Port(rawValue: port)!
@@ -37,10 +40,13 @@ class Server {
 	}
 	
 	private func didAccept(nwConnection: NWConnection) {
-		let connection = ClientConnection(nwConnection: nwConnection)
-		ConnectionStorage.addConnectionPersonal(connection)
+		lock.lock(); defer {lock.unlock()}
+		
+		let connection = ClientConnection(nwConnection: nwConnection, id: nextClientID)
+		self.nextClientID += 1
+		ConnectionStorage.shared.addConnectionPersonal(connection)
 		connection.didStopCallback = { _ in
-			ConnectionStorage.removeConnectionPersonal(connection)
+			ConnectionStorage.shared.removeConnectionPersonal(connection)
 			print("server did close connection \(connection.id)")
 		}
 		connection.start()
@@ -58,6 +64,6 @@ class Server {
 		self.listener.newConnectionHandler = nil
 		self.listener.cancel()
 		
-		ConnectionStorage.removeAllConnection()
+		ConnectionStorage.shared.removeAllConnection()
 	}
 }
